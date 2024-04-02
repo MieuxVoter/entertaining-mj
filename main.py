@@ -11,13 +11,12 @@ from manim import (
     Circle,
     Line,
     WHITE,
-    ORIGIN,
 )
-from manim.utils.rate_functions import linear, ease_in_sine, ease_out_sine, running_start, rush_into
+from manim.utils.rate_functions import linear, ease_out_sine, rush_into
 
 from candidate import CandidateManim, CandidateCharacteristics, CandidateManimList
 from color_utils import get_colors
-from jm_constant import EASY_VOTE, EASY_VOTE_SECOND_GRADE
+from jm_constant import EASY_VOTE_SECOND_GRADE
 from streched_rectangles import NextToStretchRectangleRightObjects
 
 
@@ -26,6 +25,14 @@ class EntertainingJM(Scene):
         super().__init__(**kwargs)
         self.vote = EASY_VOTE_SECOND_GRADE
         self.colors = get_colors(self.vote.nb_grades)
+
+    def construct(self):
+        v_groups = self.present_candidate()
+        self.present_grades(v_groups[0])
+        self.vertical_bar(v_groups)
+        # self.stack(v_groups)
+        self.stack_with_controled_time(v_groups)
+        self.wait(2)
 
     def stack(self, groups):
         """
@@ -200,11 +207,3 @@ class EntertainingJM(Scene):
             grade_groups[i].next_to(grade_groups[i - 1], RIGHT)
 
         self.play(*[FadeIn(grade_group) for grade_group in grade_groups])
-
-    def construct(self):
-        v_groups = self.present_candidate()
-        self.present_grades(v_groups[0])
-        self.vertical_bar(v_groups)
-        # self.stack(v_groups)
-        self.stack_with_controled_time(v_groups)
-        self.wait(2)
