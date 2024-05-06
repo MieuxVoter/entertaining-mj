@@ -6,15 +6,17 @@ from manim import (
     UP,
     DOWN,
     FadeIn,
+    FadeOut,
     Text,
     Group,
     Circle,
+    RoundedRectangle,
     Line,
     WHITE,
 )
 from manim.utils.rate_functions import linear, ease_out_sine, rush_into
 
-from candidate import CandidateManim, CandidateCharacteristics, CandidateManimList
+from candidate import CandidateManimListFromVote
 from color_utils import get_colors
 from jm_constant import EASY_VOTE_SECOND_GRADE
 from streched_rectangles import NextToStretchRectangleRightObjects
@@ -24,14 +26,17 @@ class EntertainingJM(Scene):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vote = EASY_VOTE_SECOND_GRADE
+        self.candidates = CandidateManimListFromVote(self.vote).build()
         self.colors = get_colors(self.vote.nb_grades)
 
     def construct(self):
         v_groups = self.present_candidate()
+        self.add_majority_label(v_groups)
         self.present_grades(v_groups[0])
         self.vertical_bar(v_groups)
         # self.stack(v_groups)
-        self.stack_with_controled_time(v_groups)
+        self.stack_with_controled_time(v_groups, up_to_majority=True)
+        self.replace_groups(v_groups)
         self.wait(2)
 
     def stack(self, groups):
@@ -62,15 +67,17 @@ class EntertainingJM(Scene):
 
         self.wait()
 
-    def stack_with_controled_time(self, groups):
-        all_rectangles = []
+    def stack_with_controled_time(self, groups, up_to_majority=False):
+        self.stack_bars = []
         time_by_grade = 1
 
         rate_funcs = [rush_into]
         rate_funcs += [linear] * (self.vote.nb_grades - 2)
         rate_funcs += [ease_out_sine]
 
-        for g, grade in enumerate(self.vote.grades):
+        grades = self.vote.up_to_majority_grade if up_to_majority else self.vote.grades
+
+        for g, grade in enumerate(grades):
             rectangles = []
             votes = self.vote.votes_by_grade(grade)
             max_vote = max(votes)
@@ -85,8 +92,8 @@ class EntertainingJM(Scene):
                         object_to_next_to = groups[c].submobjects[0]
                         buffer = 0.25
                     elif g != 0 and j == 0:  # new grade
-                        object_to_next_to = all_rectangles[g - 1][-1][c].stretched_rect
-                        buffer = 0.25
+                        object_to_next_to = self.stack_bars[g - 1][-1][c].stretched_rect
+                        buffer = 0
                     else:
                         object_to_next_to = rectangles[j - 1][c].stretched_rect
                         buffer = 0
@@ -104,34 +111,50 @@ class EntertainingJM(Scene):
 
                 self.play(*[rect.stretch(ratefunc=rate_funcs[j]) for rect in rectangle_series], run_time=time * 3)
                 rectangles.append(rectangle_series)
-            all_rectangles.append(rectangles)
+            self.stack_bars.append(rectangles)
             self.wait(0.5)
 
         self.wait()
+
+    def replace_groups(self, groups):
+        candidate_idx_to_fadeout = self.vote.candidates_idx_without_majority_grade
+        rectangles_to_fadeout = []
+        for e in self.stack_bars:
+            for t in e:
+                for candidate in candidate_idx_to_fadeout:
+                    rectangles_to_fadeout.append(t[candidate].original_rect)
+
+        candidate_groups_to_fadeout = [groups[c] for c in candidate_idx_to_fadeout]
+
+        to_fade_out = rectangles_to_fadeout + candidate_groups_to_fadeout
+        ready_to_fade_out = [FadeOut(group, rate_func=rush_into) for group in to_fade_out]
+
+        candidate_idx_to_move = self.vote.candidates_idx_with_majority_grade
+        rectangles_to_move = []
+        for e in self.stack_bars:
+            for t in e:
+                for candidate in candidate_idx_to_move:
+                    rectangles_to_move.append(t[candidate].original_rect)
+
+        candidate_groups_to_move = [groups[c] for c in candidate_idx_to_move]
+
+        to_move = rectangles_to_move + candidate_groups_to_move
+        ready_to_move = [group.animate.shift(UP) for group in to_move]
+
+        ready_to_play = ready_to_fade_out + ready_to_move
+
+        self.play(*ready_to_play)
 
     def present_candidate(self):
         image_spacing = 0.5
         scale = 1
 
-        candidates = CandidateManimList()
-        for i in range(self.vote.nb_candidates):
-            candidates.append(
-                CandidateManim(
-                    characteristics=CandidateCharacteristics(
-                        name=self.vote.candidates[i],
-                        surname="Dupont",
-                        picture="image126.png",
-                    )
-                )
-            )
+        nb_candidates = self.vote.nb_candidates
+        is_number_of_images_uneven = nb_candidates % 2 != 0
 
-        is_number_of_images_uneven = len(candidates) % 2 != 0
-
-        images = candidates.images
+        images = self.candidates.images
         for image in images:
             image.scale(scale)
-
-        nb_candidates = len(candidates)
 
         if is_number_of_images_uneven:
             images_left = images[: nb_candidates // 2]
@@ -156,7 +179,7 @@ class EntertainingJM(Scene):
 
         # Display the images
         # self.play(*[FadeIn(image) for image in images])
-        self.play(*[FadeIn(group) for group in candidates.to_manim()])
+        self.play(*[FadeIn(group) for group in self.candidates.to_manim()])
         self.wait(1)
 
         # Define the vertical offset for each group
@@ -164,21 +187,32 @@ class EntertainingJM(Scene):
         #
         # # Animate each group to its target position
         move_to = []
-        for i, group in enumerate(candidates.to_manim()):
+        for i, group in enumerate(self.candidates.to_manim()):
             target_position = start_from + UP * i * 2
             move_to.append(group.animate.move_to(target_position))
         self.play(*move_to)
 
         self.wait(2)
 
-        return candidates.to_manim()
+        return self.candidates.to_manim()
+
+    def add_majority_label(self, groups):
+        mj_grades = self.vote.majority_grades
+
+        for i, group in enumerate(groups):
+            text_group = RoundedRectangle(corner_radius=1.5, height=3.0, width=4.0)
+            text_group = RoundedRectangle(corner_radius=1.5, height=3.0, width=4.0)
+
+            majority_label = Text(mj_grades[i], font_size=12)
+            majority_label.next_to(group, UP)
+            self.play(FadeIn(majority_label))
 
     def vertical_bar(self, groups):
 
-        offset = (10 + self.vote.nb_grades * 0.25) / 2 + 0.25
+        offset = (10 + self.vote.nb_grades * 0) / 2 + 0.25
         # Plot a vertical dash line
-        start_from = DOWN * 2
-        end_at = UP * 2
+        start_from = DOWN * 3
+        end_at = UP * 3
         dash_line = Line(start=start_from, end=end_at, color=WHITE).next_to(groups[1], RIGHT, buff=offset)
         self.play(FadeIn(dash_line))
 

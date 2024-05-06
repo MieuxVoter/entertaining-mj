@@ -1,4 +1,6 @@
-from manim import ImageMobject, Text, Group, DOWN
+from manim import ImageMobject, Text, Group, DOWN, ORIGIN, UP, RoundedRectangle
+
+from jm_result import JMResults, JMCandidateResult
 
 
 class CandidateCharacteristics:
@@ -15,11 +17,31 @@ class CandidateCharacteristics:
         return self._picture
 
 
+class GradeLabelOnRoundedRectangle:
+    def __init__(self, grade: str, color: str = "WHITE"):
+        self.grade = grade
+        self.manim_grade_string = Text(grade, font_size=12)
+        self.manim_rounded_rectangle = RoundedRectangle(
+            corner_radius=0.15, height=0.30, width=0.40, fill_color=color, fill_opacity=1
+        )
+        self.group = self.to_manim()
+
+    def to_manim(self):
+        return Group(
+            self.manim_rounded_rectangle,
+            self.manim_grade_string.next_to(self.manim_rounded_rectangle, ORIGIN),
+        )
+
+
 class CandidateManim:
-    def __init__(self, characteristics: CandidateCharacteristics):
+    def __init__(self, characteristics: CandidateCharacteristics, result: JMCandidateResult):
         self.characteristics = characteristics
+        self.result = result
         self.manim_image = ImageMobject(self.characteristics.picture)
         self.manim_text = Text(self.characteristics.__str__(), font_size=12)
+        self.manim_grade_label = GradeLabelOnRoundedRectangle(self.result.grade).to_manim()
+        self.group = self.to_manim()
+        # self.extra_elements = []
 
     def __str__(self):
         """Make first letter UpperCase and the rest LowerCase"""
@@ -27,16 +49,37 @@ class CandidateManim:
         first_surname = self.characteristics.surname[0].upper() + self.characteristics.surname[1:].lower()
         return f"{first_name} {first_surname}"
 
-    @property
-    def picture(self):
-        return self._picture
-
     def to_manim(self):
         text_offset = 0.25
         return Group(
             self.manim_image,
             self.manim_text.next_to(self.manim_image, DOWN, buff=text_offset),
+            self.manim_grade_label.next_to(self.manim_text, UP * 0.25, buff=0),
+            # *self.extra_elements,
         )
+
+    def add_object(self, obj):
+        self.extra_elements.append(obj)
+
+
+class CandidateManimListFromVote:
+    def __init__(self, vote: JMResults):
+        self.vote = vote
+        self.candidates = CandidateManimList()
+
+    def build(self):
+        for i in range(self.vote.nb_candidates):
+            self.candidates.append(
+                CandidateManim(
+                    characteristics=CandidateCharacteristics(
+                        name=self.vote.candidates[i],
+                        surname="Dupont",  # TODO: add surname to vote
+                        picture="image126.png",  # TODO: add picture to vote
+                    ),
+                    result=self.vote.to_candidate_results(self.vote.candidates[i]),
+                )
+            )
+        return self.candidates
 
 
 class CandidateManimList:

@@ -7,7 +7,13 @@ from manim import (
     ImageMobject,
     FadeIn,
     Text,
+    FadeOut,
+    BLUE,
+    RED,
+    Rectangle,
     Group,
+    Create,
+    Transform,
 )
 
 from color_utils import get_colors
@@ -28,6 +34,50 @@ class StackBarDisplay(Scene):
                 color=colors[i],
             )
             self.play(rect.stretch)
+
+        self.wait()
+
+
+class StackBarDisplayAndFadeOut(Scene):
+
+    def construct(self):
+        colors = get_colors(DEFAULT_VOTE.nb_grades)
+
+        rectangles = []
+        for i in range(DEFAULT_VOTE.nb_grades):
+            rect = StretchRectangleRightObjects(
+                width=DEFAULT_VOTE["marcel"][i] / 10,
+                x_location=DEFAULT_VOTE.cumulative_results()["marcel"][i] / 10,
+                y_location=0,
+                color=colors[i],
+            )
+            rectangles.append(rect)
+            self.play(rect.stretch)
+
+        for rect in rectangles:
+            self.play(FadeOut(rect.original_rect))
+
+        self.wait()
+
+
+class StackBarDisplayAndFadOut(Scene):
+
+    def construct(self):
+        colors = get_colors(DEFAULT_VOTE.nb_grades)
+
+        rect = Rectangle(width=2, height=1, color=BLUE)
+
+        # Add the rectangle to the scene
+        self.play(Create(rect))
+
+        # Create a stretched rectangle
+        stretched_rect = Rectangle(width=4, height=1, color=RED)
+
+        # Transform the original rectangle into the stretched rectangle
+        self.play(Transform(rect, stretched_rect))
+
+        # Fade out the rectangle
+        self.play(FadeOut(rect))
 
         self.wait()
 

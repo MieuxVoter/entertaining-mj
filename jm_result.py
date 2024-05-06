@@ -1,4 +1,28 @@
+from dataclasses import dataclass
+
 import numpy as np
+
+
+@dataclass(frozen=True)
+class JMCandidateResult:
+    """
+    A class to handle the results of a candidate.
+
+    Parameters
+    ----------
+    candidate : str
+        The name of the candidate.
+    votes : tuple[int]
+        The votes of the candidate.
+    rank : int
+        The rank of the candidate.
+    grade : str
+        The grade of the candidate.
+    """
+    candidate: str
+    votes: tuple[int]
+    rank: int
+    grade: str
 
 
 class JMResults:
@@ -22,6 +46,14 @@ class JMResults:
 
     def __getitem__(self, item):
         return self.votes[item]
+
+    def to_candidate_results(self, candidate: str) -> JMCandidateResult:
+        return JMCandidateResult(
+            candidate=candidate,
+            votes=self.votes[candidate],
+            rank=self.rank(candidate),
+            grade=self.candidate_majority_grade(candidate),
+        )
 
     @property
     def grades(self):
@@ -61,23 +93,67 @@ class JMResults:
         return self._ranks
 
     def rank(self, candidate: str) -> int:
-        return self._ranks.index(candidate)
+        candidate_idx = self.candidates.index(candidate)
+        return self._ranks.index(candidate_idx)
 
     @property
     def majority_grade(self) -> str:
         """The best grade that cumulative votes reach the 50% mark."""
         majority_grades = self.majority_grades
         majority_indexes = []
-        for i, grade in enumerate(majority_grades):
+        for _, grade in enumerate(majority_grades):
             majority_indexes.append(self._grades.index(grade))
 
-        return self._grades[max(majority_indexes)]
-
-    def candidate_majority_grade(self, candidate: str):
-        return self._votes[candidate][self.nb_grades // 2]
+        return self._grades[min(majority_indexes)]
 
     @property
-    def majority_grades(self) -> list[int]:
+    def up_to_majority_grade(self) -> list[str]:
+        """The best grade that cumulative votes reach the 50% mark."""
+        majority_grades = self.majority_grades
+        majority_indexes = []
+        for _, grade in enumerate(majority_grades):
+            majority_indexes.append(self._grades.index(grade))
+
+        return self._grades[: min(majority_indexes) + 1]
+
+    @property
+    def candidates_without_majority_grade(self) -> list[str]:
+        """Get the candidates that do not have the majority grade"""
+        majority_grade = self.majority_grade
+        return [
+            candidate for candidate in self.candidates if self.candidate_majority_grade(candidate) != majority_grade
+        ]
+
+    @property
+    def candidates_idx_without_majority_grade(self) -> list[int]:
+        """Get the candidates index that do not have the majority grade"""
+        candidates = self.candidates_without_majority_grade
+        return [self.candidates.index(candidate) for candidate in candidates]
+
+    @property
+    def candidates_idx_with_majority_grade(self) -> list[int]:
+        """Get the candidates index that have the majority grade"""
+        candidates = self.candidates_with_majority_grade
+        return [self.candidates.index(candidate) for candidate in candidates]
+
+    @property
+    def candidates_with_majority_grade(self) -> list[str]:
+        """Get the candidates that have the majority grade"""
+        majority_grade = self.majority_grade
+        return [
+            candidate for candidate in self.candidates if self.candidate_majority_grade(candidate) == majority_grade
+        ]
+
+    def candidate_majority_grade(self, candidate: str) -> str:
+        """Returns the grade that reaches the 50% mark for a given candidate."""
+        votes = self._votes[candidate]
+        cumulative_votes = np.cumsum(votes)
+        majority_vote = np.max(cumulative_votes) / 2
+        majority_grade = self._grades[np.argmax(cumulative_votes >= majority_vote)]
+        return majority_grade
+
+    @property
+    def majority_grades(self) -> list[str]:
         return [self.candidate_majority_grade(candidate) for candidate in self.candidates]
 
     def viz_votes_by_grade_to_max(self, grade: str) -> list[list[int]]:
@@ -121,3 +197,5 @@ class JMResults:
         sum_of_votes = [sum(vote) for vote in vote_to_cumulate]
         index_max_cumsum = np.argmax(sum_of_votes)
         return vote_to_cumulate[index_max_cumsum]
+
+

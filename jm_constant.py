@@ -1,4 +1,4 @@
-from jm_utils import JMResults
+from jm_result import JMResults
 
 JM_RESULTS = dict(
     michel=(10.5, 20.5, 30.5, 38.5),
@@ -35,7 +35,6 @@ JM_RESULTS = dict(
 EASY_VOTE_SECOND_GRADE = JMResults(
     JM_RESULTS, (0, 2, 1), grades=["Excellent", "Très bien", "Bien", "Passable", "Insuffisant"]
 )
-
 
 JM_RESULTS = dict(
     michel=(15, 45, 5, 20),
