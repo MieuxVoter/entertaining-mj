@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 
 import numpy as np
+from manim import ManimColor
+
+from color_utils import JMColors
 
 
 @dataclass(frozen=True)
@@ -18,11 +21,15 @@ class JMCandidateResult:
         The rank of the candidate.
     grade : str
         The grade of the candidate.
+    color : ManimColor
+        The color of the grade.
     """
+
     candidate: str
     votes: tuple[int]
     rank: int
     grade: str
+    color: ManimColor
 
 
 class JMResults:
@@ -43,6 +50,7 @@ class JMResults:
         self._ranks = ranks
         self._votes = votes
         self._grades = grades
+        self._colors = JMColors.from_nb_grades(self.nb_grades)
 
     def __getitem__(self, item):
         return self.votes[item]
@@ -53,6 +61,7 @@ class JMResults:
             votes=self.votes[candidate],
             rank=self.rank(candidate),
             grade=self.candidate_majority_grade(candidate),
+            color=self.color(self.candidate_majority_grade(candidate)),
         )
 
     @property
@@ -198,4 +207,10 @@ class JMResults:
         index_max_cumsum = np.argmax(sum_of_votes)
         return vote_to_cumulate[index_max_cumsum]
 
+    @property
+    def colors(self):
+        return self._colors.colors
 
+    def color(self, grade: str):
+        idx = self._grades.index(grade)
+        return self._colors.grade_color(idx)

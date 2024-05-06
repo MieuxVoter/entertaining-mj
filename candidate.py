@@ -1,4 +1,4 @@
-from manim import ImageMobject, Text, Group, DOWN, ORIGIN, UP, RoundedRectangle
+from manim import ImageMobject, Text, Group, DOWN, ORIGIN, UP, RoundedRectangle, ManimColor
 
 from jm_result import JMResults, JMCandidateResult
 
@@ -18,11 +18,11 @@ class CandidateCharacteristics:
 
 
 class GradeLabelOnRoundedRectangle:
-    def __init__(self, grade: str, color: str = "WHITE"):
+    def __init__(self, grade: str, color: ManimColor):
         self.grade = grade
         self.manim_grade_string = Text(grade, font_size=12)
         self.manim_rounded_rectangle = RoundedRectangle(
-            corner_radius=0.15, height=0.30, width=0.40, fill_color=color, fill_opacity=1
+            corner_radius=0.175, height=0.35, width=0.900, fill_color=color, fill_opacity=1, stroke_width=0
         )
         self.group = self.to_manim()
 
@@ -39,7 +39,7 @@ class CandidateManim:
         self.result = result
         self.manim_image = ImageMobject(self.characteristics.picture)
         self.manim_text = Text(self.characteristics.__str__(), font_size=12)
-        self.manim_grade_label = GradeLabelOnRoundedRectangle(self.result.grade).to_manim()
+        self.manim_grade_label = GradeLabelOnRoundedRectangle(self.result.grade, color=result.color).to_manim()
         self.group = self.to_manim()
         # self.extra_elements = []
 

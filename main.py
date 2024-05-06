@@ -10,14 +10,12 @@ from manim import (
     Text,
     Group,
     Circle,
-    RoundedRectangle,
     Line,
     WHITE,
 )
 from manim.utils.rate_functions import linear, ease_out_sine, rush_into
 
 from candidate import CandidateManimListFromVote
-from color_utils import get_colors
 from jm_constant import EASY_VOTE_SECOND_GRADE
 from streched_rectangles import NextToStretchRectangleRightObjects
 
@@ -27,7 +25,6 @@ class EntertainingJM(Scene):
         super().__init__(**kwargs)
         self.vote = EASY_VOTE_SECOND_GRADE
         self.candidates = CandidateManimListFromVote(self.vote).build()
-        self.colors = get_colors(self.vote.nb_grades)
 
     def construct(self):
         v_groups = self.present_candidate()
@@ -105,7 +102,7 @@ class EntertainingJM(Scene):
                             object_to_next_to=object_to_next_to,
                             direction=RIGHT,
                             buffer=buffer,
-                            color=self.colors[g],
+                            color=self.vote.colors[g],
                         )
                     )
 
@@ -199,13 +196,10 @@ class EntertainingJM(Scene):
     def add_majority_label(self, groups):
         mj_grades = self.vote.majority_grades
 
-        for i, group in enumerate(groups):
-            text_group = RoundedRectangle(corner_radius=1.5, height=3.0, width=4.0)
-            text_group = RoundedRectangle(corner_radius=1.5, height=3.0, width=4.0)
-
-            majority_label = Text(mj_grades[i], font_size=12)
-            majority_label.next_to(group, UP)
-            self.play(FadeIn(majority_label))
+        # for i, group in enumerate(groups):
+        #     majority_label = Text(mj_grades[i], font_size=12)
+        #     majority_label.next_to(group, UP)
+        #     self.play(FadeIn(majority_label))
 
     def vertical_bar(self, groups):
 
@@ -219,7 +213,7 @@ class EntertainingJM(Scene):
     def present_grades(self, last_group):
         # build Circles
         circles = [
-            Circle(radius=0.1, color=self.colors[i], fill_color=self.colors[i], fill_opacity=1)
+            Circle(radius=0.1, color=self.vote.colors[i], fill_color=self.vote.colors[i], fill_opacity=1)
             for i in range(self.vote.nb_grades)
         ]
         grades = [Text(grade, font_size=12) for grade in self.vote.grades]
